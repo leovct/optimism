@@ -29,6 +29,7 @@ const (
 	EtherscanAPIKeyFlagName  = "etherscan-api-key"
 	InputFileFlagName        = "input-file"
 	ContractNameFlagName     = "contract-name"
+	PredeployedFileFlagName  = "predeployed-file"
 )
 
 type DeploymentTarget string
@@ -151,6 +152,11 @@ var (
 		Usage:   "(optional) contract name matching a field within the input file",
 		EnvVars: PrefixEnvVar("CONTRACT_NAME"),
 	}
+	PredeployedFileFlag = &cli.StringFlag{
+		Name:    PredeployedFileFlagName,
+		Usage:   "filepath of predeployed file for command",
+		EnvVars: PrefixEnvVar("PREDEPLOYED_FILE"),
+	}
 )
 
 var GlobalFlags = append([]cli.Flag{CacheDirFlag}, oplog.CLIFlags(EnvVarPrefix)...)
@@ -168,6 +174,7 @@ var ApplyFlags = []cli.Flag{
 	PrivateKeyFlag,
 	DeploymentTargetFlag,
 	OpProgramSvcUrlFlag,
+	PredeployedFileFlag,
 }
 
 var UpgradeFlags = []cli.Flag{

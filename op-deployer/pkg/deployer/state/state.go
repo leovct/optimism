@@ -67,10 +67,19 @@ type State struct {
 	// DeploymentCalldata contains the calldata of each transaction in the deployment. This is only
 	// populated if apply is called with --deployment-target=calldata.
 	DeploymentCalldata []broadcaster.CalldataDump
+
+	PredeployedMap map[string]PredeployedEntry `json:"predeployedMap"`
 }
 
 func (s *State) WriteToFile(path string) error {
 	return jsonutil.WriteJSON(s, ioutil.ToAtomicFile(path, 0o755))
+}
+
+type PredeployedEntry struct {
+	Balance string                      `json:"balance"`
+	Nonce   string                      `json:"nonce,omitempty"`
+	Code    hexutil.Bytes               `json:"code,omitempty"`
+	Storage map[common.Hash]common.Hash `json:"storage,omitempty"`
 }
 
 func (s *State) Chain(id common.Hash) (*ChainState, error) {

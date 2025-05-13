@@ -3,8 +3,10 @@ package deployer
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/devnet-sdk/proofs/prestate"
@@ -37,6 +39,7 @@ type ApplyConfig struct {
 	CacheDir         string
 	privateKeyECDSA  *ecdsa.PrivateKey
 	PreStateBuilder  pipeline.PreStateBuilder
+	PredeployedFile  string
 }
 
 func (a *ApplyConfig) Check() error {
@@ -87,6 +90,7 @@ func ApplyCLI() func(cliCtx *cli.Context) error {
 		cacheDir := cliCtx.String(CacheDirFlagName)
 		depTarget, err := NewDeploymentTarget(cliCtx.String(DeploymentTargetFlag.Name))
 		opProgramSvcUrl := cliCtx.String(OpProgramSvcUrlFlag.Name)
+		predeployedFile := cliCtx.String(PredeployedFileFlagName)
 
 		var preStateBuilder pipeline.PreStateBuilder
 		if opProgramSvcUrl != "" {
@@ -107,6 +111,7 @@ func ApplyCLI() func(cliCtx *cli.Context) error {
 			Logger:           l,
 			CacheDir:         cacheDir,
 			PreStateBuilder:  preStateBuilder,
+			PredeployedFile:  predeployedFile,
 		})
 	}
 }
@@ -136,6 +141,7 @@ func Apply(ctx context.Context, cfg ApplyConfig) error {
 		StateWriter:        pipeline.WorkdirStateWriter(cfg.Workdir),
 		CacheDir:           cfg.CacheDir,
 		PreStateBuilder:    cfg.PreStateBuilder,
+		PredeployedFile:    cfg.PredeployedFile,
 	}); err != nil {
 		return err
 	}
@@ -158,6 +164,7 @@ type ApplyPipelineOpts struct {
 	StateWriter        pipeline.StateWriter
 	CacheDir           string
 	PreStateBuilder    pipeline.PreStateBuilder
+	PredeployedFile    string
 }
 
 func ApplyPipeline(
@@ -290,6 +297,18 @@ func ApplyPipeline(
 		}
 	default:
 		return fmt.Errorf("invalid deployment target: '%s'", opts.DeploymentTarget)
+	}
+
+	var preDeployedMap map[string]state.PredeployedEntry
+	if opts.PredeployedFile != "" {
+		fmt.Println("Reading predeployed file:", opts.PredeployedFile)
+		var err error
+		preDeployedMap, err = readPredeployedFile(opts.PredeployedFile)
+		if err != nil {
+			return fmt.Errorf("failed to read predeployed file: %w", err)
+		}
+	} else {
+		fmt.Println("No predeployed file provided, skipping")
 	}
 
 	// Now that we have the host, we can load the deployment scripts
@@ -437,9 +456,24 @@ func ApplyPipeline(
 	}
 
 	st.AppliedIntent = intent
+	st.PredeployedMap = preDeployedMap
 	if err := pEnv.StateWriter.WriteState(st); err != nil {
 		return fmt.Errorf("failed to write state: %w", err)
 	}
 
 	return nil
+}
+
+func readPredeployedFile(path string) (map[string]state.PredeployedEntry, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read predeployed file: %w", err)
+	}
+
+	var entries map[string]state.PredeployedEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return nil, fmt.Errorf("failed to parse predeployed file: %w", err)
+	}
+
+	return entries, nil
 }
