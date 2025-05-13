@@ -29,6 +29,7 @@ const (
 	ContractNameFlagName     = flags.ContractNameFlagName
 	VerifierTypeFlagName     = flags.VerifierTypeFlagName
 	VerifierUrlFlagName      = flags.VerifierUrlFlagName
+	PredeployedFileFlagName  = "predeployed-file"
 )
 
 var (
@@ -134,6 +135,11 @@ var (
 		EnvVars: PrefixEnvVar("VERIFY"),
 		Value:   false,
 	}
+	PredeployedFileFlag = &cli.StringFlag{
+		Name:    PredeployedFileFlagName,
+		Usage:   "filepath of predeployed file for command",
+		EnvVars: PrefixEnvVar("PREDEPLOYED_FILE"),
+	}
 )
 
 var GlobalFlags = append([]cli.Flag{CacheDirFlag}, oplog.CLIFlags(EnvVarPrefix)...)
@@ -155,6 +161,7 @@ var ApplyFlags = []cli.Flag{
 	VerifierAPIKeyFlag,
 	VerifierFlag,
 	VerifierUrlFlag,
+	PredeployedFileFlag,
 }
 
 var UpgradeFlags = []cli.Flag{
