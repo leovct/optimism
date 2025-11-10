@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/p2p"
 	"github.com/ethereum-optimism/optimism/op-service/cliiface"
 
-	"github.com/ethereum/go-ethereum/log"
+	// "github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/netutil"
 )
@@ -178,10 +178,11 @@ func loadDiscoveryOpts(conf *p2p.Config, ctx cliiface.Context) error {
 	}
 
 	records := ctx.StringSlice(flags.BootnodesName)
-	if len(records) == 0 {
-		log.Info("Using default bootnodes, none provided.")
-		records = p2p.DefaultBootnodes
-	}
+	// Avoid connecting to default bootnodes (mainnet nodes) when running in antithesis environment
+	// if len(records) == 0 {
+	// 	log.Info("Using default bootnodes, none provided.")
+	// 	records = p2p.DefaultBootnodes
+	// }
 
 	for i, record := range records {
 		record = strings.TrimSpace(record)
