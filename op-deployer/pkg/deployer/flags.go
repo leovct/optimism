@@ -34,6 +34,7 @@ const (
 	UseForgeFlagName           = flags.UseForgeFlagName
 	ForgeSlowBroadcastFlagName = flags.ForgeSlowBroadcastFlagName
 	GenesisTimeOffsetFlagName  = flags.GenesisTimeOffsetFlagName
+	PredeployedFileFlagName    = "predeployed-file"
 )
 
 var (
@@ -160,6 +161,11 @@ var (
 		EnvVars: PrefixEnvVar("GENESIS_TIME_OFFSET"),
 		Value:   standard.DefaultGenesisTimeOffsetSeconds,
 	}
+	PredeployedFileFlag = &cli.StringFlag{
+		Name:    PredeployedFileFlagName,
+		Usage:   "filepath of predeployed file for command",
+		EnvVars: PrefixEnvVar("PREDEPLOYED_FILE"),
+	}
 )
 
 var GlobalFlags = append([]cli.Flag{CacheDirFlag}, logcli.CLIFlags(EnvVarPrefix)...)
@@ -195,6 +201,7 @@ var ApplyFlags = []cli.Flag{
 	VerifierUrlFlag,
 	UseForgeFlag,
 	ForgeSlowBroadcastFlag,
+	PredeployedFileFlag,
 }
 
 var PrestateFlags = []cli.Flag{
