@@ -33,6 +33,7 @@ const (
 	VerifierUrlFlagName       = flags.VerifierUrlFlagName
 	UseForgeFlagName          = flags.UseForgeFlagName
 	GenesisTimeOffsetFlagName = flags.GenesisTimeOffsetFlagName
+	PredeployedFileFlagName   = "predeployed-file"
 )
 
 var (
@@ -152,6 +153,11 @@ var (
 		EnvVars: PrefixEnvVar("GENESIS_TIME_OFFSET"),
 		Value:   standard.DefaultGenesisTimeOffsetSeconds,
 	}
+	PredeployedFileFlag = &cli.StringFlag{
+		Name:    PredeployedFileFlagName,
+		Usage:   "filepath of predeployed file for command",
+		EnvVars: PrefixEnvVar("PREDEPLOYED_FILE"),
+	}
 )
 
 var GlobalFlags = append([]cli.Flag{CacheDirFlag}, oplog.CLIFlags(EnvVarPrefix)...)
@@ -186,6 +192,7 @@ var ApplyFlags = []cli.Flag{
 	VerifierFlag,
 	VerifierUrlFlag,
 	UseForgeFlag,
+	PredeployedFileFlag,
 }
 
 var PrestateFlags = []cli.Flag{
