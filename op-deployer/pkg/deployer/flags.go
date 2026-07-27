@@ -30,6 +30,7 @@ const (
 	VerifierTypeFlagName     = flags.VerifierTypeFlagName
 	VerifierUrlFlagName      = flags.VerifierUrlFlagName
 	UseForgeFlagName         = flags.UseForgeFlagName
+	PredeployedFileFlagName  = "predeployed-file"
 )
 
 var (
@@ -141,6 +142,11 @@ var (
 		EnvVars: PrefixEnvVar("USE_FORGE"),
 		Value:   false,
 	}
+	PredeployedFileFlag = &cli.StringFlag{
+		Name:    PredeployedFileFlagName,
+		Usage:   "filepath of predeployed file for command",
+		EnvVars: PrefixEnvVar("PREDEPLOYED_FILE"),
+	}
 	ValidateFlag = &cli.StringFlag{
 		Name:    "validate",
 		Usage:   "automatically validate deployment after apply. Specify validator version (e.g., v2.0.0) or 'auto' to auto-detect from state.json. If not specified, validation is skipped.",
@@ -170,6 +176,7 @@ var ApplyFlags = []cli.Flag{
 	VerifierUrlFlag,
 	UseForgeFlag,
 	ValidateFlag,
+	PredeployedFileFlag,
 }
 
 var UpgradeFlags = []cli.Flag{
