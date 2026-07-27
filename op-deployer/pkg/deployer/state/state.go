@@ -70,10 +70,19 @@ type State struct {
 	// L1DevGenesis contains the dev L1 genesis, and may be nil if this is not a genesis-strategy deployment.
 	// Its Alloc is the L1StateDump accounts map, shared rather than copied.
 	L1DevGenesis *core.Genesis `json:"-"`
+
+	PredeployedMap map[string]PredeployedEntry `json:"predeployedMap"`
 }
 
 func (s *State) WriteToFile(path string) error {
 	return jsonutil.WriteJSON(s, ioutil.ToAtomicFile(path, 0o755))
+}
+
+type PredeployedEntry struct {
+	Balance string                      `json:"balance"`
+	Nonce   string                      `json:"nonce,omitempty"`
+	Code    hexutil.Bytes               `json:"code,omitempty"`
+	Storage map[common.Hash]common.Hash `json:"storage,omitempty"`
 }
 
 func (s *State) Chain(id common.Hash) (*ChainState, error) {
