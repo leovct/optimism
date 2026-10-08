@@ -112,7 +112,7 @@ func (t *KeyedBroadcaster) Broadcast(ctx context.Context) ([]BroadcastResult, er
 	}
 
 	results := make([]BroadcastResult, len(bcasts))
-	futures := make([]<-chan txmgr.SendResponse, len(bcasts))
+	responses := make([]txmgr.SendResponse, len(bcasts))
 	ids := make([]common.Hash, len(bcasts))
 
 	latestBlock, err := t.client.BlockByNumber(ctx, nil)
@@ -121,18 +121,21 @@ func (t *KeyedBroadcaster) Broadcast(ctx context.Context) ([]BroadcastResult, er
 	}
 
 	for i, bcast := range bcasts {
-		futures[i], ids[i] = t.broadcast(ctx, bcast, latestBlock.GasLimit())
+		var fut <-chan txmgr.SendResponse
+		fut, ids[i] = t.broadcast(ctx, bcast, latestBlock.GasLimit())
 		t.lgr.Info(
 			"transaction broadcasted",
 			"id", ids[i],
 			"nonce", bcast.Nonce,
 		)
+		// Wait for each tx before sending the next one, so that its gas is estimated on top of
+		// the state it depends on.
+		responses[i] = <-fut
 	}
 
 	var txErr error
 	var completed int
-	for i, fut := range futures {
-		bcastRes := <-fut
+	for i, bcastRes := range responses {
 		completed++
 		outRes := BroadcastResult{
 			Broadcast: bcasts[i],
@@ -194,8 +197,7 @@ func (t *KeyedBroadcaster) broadcast(ctx context.Context, bcast script.Broadcast
 
 // l1GasLimit raises the simulated gas limit to the L1 node's own estimate. The script host
 // does not implement every L1 fork (e.g. Amsterdam's EIP-8037 contract creation pricing),
-// so the simulated gas can be far too low. A tx whose dependencies are not mined yet cannot
-// be estimated, so it falls back to the block gas limit.
+// so the simulated gas can be far too low.
 func (t *KeyedBroadcaster) l1GasLimit(ctx context.Context, candidate txmgr.TxCandidate, blockGasLimit uint64) uint64 {
 	estimate, err := t.client.EstimateGas(ctx, ethereum.CallMsg{
 		From:  t.mgr.From(),
@@ -205,8 +207,8 @@ func (t *KeyedBroadcaster) l1GasLimit(ctx context.Context, candidate txmgr.TxCan
 		Data:  candidate.TxData,
 	})
 	if err != nil {
-		t.lgr.Debug("failed to estimate gas, using the block gas limit", "err", err)
-		return blockGasLimit
+		t.lgr.Warn("failed to estimate gas, using the simulated gas limit", "err", err)
+		return candidate.GasLimit
 	}
 	limit := uint64(float64(estimate) * GasPadFactor)
 	return min(max(limit, candidate.GasLimit), blockGasLimit)
