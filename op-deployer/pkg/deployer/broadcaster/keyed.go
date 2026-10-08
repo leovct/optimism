@@ -16,6 +16,7 @@ import (
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -186,8 +187,29 @@ func (t *KeyedBroadcaster) broadcast(ctx context.Context, bcast script.Broadcast
 
 	id := bcast.ID()
 	candidate := asTxCandidate(bcast, blockGasLimit)
+	candidate.GasLimit = t.l1GasLimit(ctx, candidate, blockGasLimit)
 	t.mgr.SendAsync(ctx, candidate, ch)
 	return ch, id
+}
+
+// l1GasLimit raises the simulated gas limit to the L1 node's own estimate. The script host
+// does not implement every L1 fork (e.g. Amsterdam's EIP-8037 contract creation pricing),
+// so the simulated gas can be far too low. A tx whose dependencies are not mined yet cannot
+// be estimated, so it falls back to the block gas limit.
+func (t *KeyedBroadcaster) l1GasLimit(ctx context.Context, candidate txmgr.TxCandidate, blockGasLimit uint64) uint64 {
+	estimate, err := t.client.EstimateGas(ctx, ethereum.CallMsg{
+		From:  t.mgr.From(),
+		To:    candidate.To,
+		Gas:   blockGasLimit,
+		Value: candidate.Value,
+		Data:  candidate.TxData,
+	})
+	if err != nil {
+		t.lgr.Debug("failed to estimate gas, using the block gas limit", "err", err)
+		return blockGasLimit
+	}
+	limit := uint64(float64(estimate) * GasPadFactor)
+	return min(max(limit, candidate.GasLimit), blockGasLimit)
 }
 
 func asTxCandidate(bcast script.Broadcast, blockGasLimit uint64) txmgr.TxCandidate {
